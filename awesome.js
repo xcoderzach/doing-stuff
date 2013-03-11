@@ -38,9 +38,11 @@ var htmlOutput = falafel(code, { loc: true }, function(node) {
     node.update('<span class="value" data-id="' + i + '">' + src + '</span>')
     i++
   }
-  if(node.type == "ForStatement") {
-    var src = node.source()
-    node.update('<span class="block" data-iteration="0" data-id="' + i + '">' + src + '</span>')
+  if(node.type === "ForStatement") {
+    var src = node.body.source()
+    node.body.update('<span class="block" id="block' + i + '" data-iteration="0" data-id="' + i + '">' + 
+      src + 
+    '</span>')
     i++
   }
 })
@@ -72,11 +74,9 @@ function end() {
 
 if(typeof $ != "undefined") {
   $(function() {
-    $(".code").html(htmlOutput.toString().replace(/\n/g, "<br />"))
-    $(".value").each(function(i, element) {
-      var el = $(element)
-        , blocks = el.parents(".block")
-        , value
+
+    function getValueObjectForElement(el) {
+      var blocks = el.parents(".block")
         , curr = values
 
       blocks.each(function(i, block) {
@@ -85,10 +85,41 @@ if(typeof $ != "undefined") {
           , iteration = parseInt(block.attr("data-iteration"))
         curr = curr[id][iteration]
       })
+      return curr
+    }
 
-      console.log(curr)
-      value = JSON.stringify(curr[parseInt(el.attr("data-id"))]) 
-      el.tooltip({ title: value })
+    $(".code").html(htmlOutput.toString().replace(/\n/g, "<br />"))
+    $(".value").each(function(i, element) {
+      var el = $(element)
+        , blocks = el.parents(".block")
+      
+      function updateValues() {
+        var value
+          , curr = getValueObjectForElement(el)
+
+        value = JSON.stringify(curr[parseInt(el.attr("data-id"))]) 
+        el.tooltip('destroy').tooltip({ title: value })
+      }
+      updateValues()
+      blocks.on("changeIteration", updateValues)
+    })
+    $(".block").each(function(i, block) {
+      block = $(block)
+      var val = getValueObjectForElement(block)
+      var iterations = val[block.attr("data-id")]
+      var element = '<select class="iterationChooser">'
+      for(var i = 0 ; i < iterations.length ; i++) {
+        element += '<option value = "' + i + '">' + i + '</option>'
+      }    
+      element += '</select>' 
+
+      var select = $(element)
+      select.on("change", function() {
+        block.attr("data-iteration", $(this).val())
+        block.trigger("changeIteration")
+      })
+
+      block.popover({ html: true, content: select }) 
     })
   })
 } 
