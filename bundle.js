@@ -1,32 +1,33 @@
 ;(function(e,t,n,r){function i(r){if(!n[r]){if(!t[r]){if(e)return e(r);throw new Error("Cannot find module '"+r+"'")}var s=n[r]={exports:{}};t[r][0](function(e){var n=t[r][1][e];return i(n?n:e)},s,s.exports)}return n[r].exports}for(var s=0;s<r.length;s++)i(r[s]);return i})(typeof require!=="undefined"&&require,{1:[function(require,module,exports){var falafel = require('falafel')
 
-var code = "var x = 10; x = 20; x = x - 1;"
+var code = "var x = 10; x = x - 1;"
   , i = 0
 
 var output = falafel(code, { loc: true }, function(node) {
-  if(node.type == "VariableDeclarator") {
-    node.init.update("__debugger.set(" + i + ", " + node.init.source() + ")")
+  if(node.type === "Identifier") {
+    if(node.parent && node.parent.type === "AssignmentExpression" && node.parent.left === node) {
+      node.parent.right.__hackedI = i
+    } else if(node.parent && node.parent.type === "VariableDeclarator" && node.parent.id === node) {
+      node.parent.init.__hackedI = i
+    } else {
+      node.update("__debugger.set(" + i + ", " + node.source() + ")")
+    }
     i++
   }
-  if(node.type == "AssignmentExpression") {
-    node.right.update("__debugger.set(" + i + ", " + node.right.source() + ")")
-    i++
+  if(typeof node.__hackedI !== "undefined") {
+    node.update("__debugger.set(" + node.__hackedI + ", " + node.source() + ")") 
   }
 })
 
 i = 0
 var htmlOutput = falafel(code, { loc: true }, function(node) {
-  console.log(node.type)
-  if(node.type == "VariableDeclarator") {
-    node.id.update('<span class="value" data-id="' + i + '">' + node.id.source() + '</span>')
-    i++
-  }
-  if(node.type == "AssignmentExpression") {
-    node.left.update('<span class="value" data-id="' + i + '">' + node.left.source() + '</span>')
+  if(node.type == "Identifier") {
+    node.update('<span class="value" data-id="' + i + '">' + node.source() + '</span>')
     i++
   }
 })
 
+console.log(output.toString())
 eval('var __debugger = { values: {}, set: function(index, value) { return this.values[index] = value } }; ' + output)
 if(typeof $ != "undefined") {
   $(function() {
