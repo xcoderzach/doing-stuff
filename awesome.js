@@ -119,7 +119,9 @@ if(typeof $ != "undefined") {
         block.trigger("changeIteration")
       })
 
-      block.popover({ html: true, content: select }) 
+      block.popover({ html: true, content: select }).popover("show")
+
+      block.data("popover").$tip.css("left", "300px")
     })
   })
 } 
