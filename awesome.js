@@ -1,6 +1,11 @@
+window.first = true
 var sourceFn = function() {
-  var code = "x = {console: console}; x.console.log('asdf');"
+  if(!first) return
+  first = false
+
+  var code = "console.log('asdf')"// "(" + sourceFn.toString() +"())"
     , i = 0
+
 
   function isAssignmentTarget(node) {
     var item = node
@@ -17,6 +22,14 @@ var sourceFn = function() {
     return false
   }
 
+  function isCallTarget(node) {
+    if(!node.parent || !node.parent.parent) return false
+
+    if(node === node.parent.property && node.parent === node.parent.parent.callee) {
+      return true
+    }
+  }
+
   var chunks = code.split('')
 
   function originalSource(node) {
@@ -28,15 +41,12 @@ var sourceFn = function() {
       , assignmentStatement
 
     if(node.type === "CallExpression") {
-      if(node.callee.type === "MemberExpression") {
-        node.callee.update(node.callee.source() + ".call")
-        if(node.arguments.length) {  
-          node.arguments[0].update(originalSource(node.callee.object) + "," + node.arguments[0].source())
-        }
-      }
+      console.log(node)
     }
     if(node.type === "Identifier") {
-      if(assignmentStatement = isAssignmentTarget(node)) {
+      if(isCallTarget(node)) {
+        //nothing, we can't wrap these, or else the function binding gets all fuckd up
+      } else if(assignmentStatement = isAssignmentTarget(node)) {
         if(assignmentStatement.operator === "=") {
           assignmentStatement.right.__hackedI = i
         } else {
@@ -50,7 +60,7 @@ var sourceFn = function() {
         node.parent.__hackedI = i
       } else if(node.parent && node.parent.type === "MemberExpression" && node.parent.property === node) {
         node.parent.__hackedI = i
-      } else if(!node.parent || node.parent.key !== node && node.parent.type !== "FunctionExpression") {
+      } else if(!node.parent || node.parent.key !== node && node.parent.type !== "FunctionExpression" && node.parent.type !== "FunctionDeclaration") {
         node.update("__(" + i + ", " + node.source() + ")")
       }
       i++
