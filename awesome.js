@@ -1,15 +1,40 @@
 var sourceFn = function() {
-  var code = ";(" + sourceFn.toString() + "())"
+  var code = "console.log('asdf');"
     , i = 0
+
+  function isAssignmentTarget(node) {
+    var item = node
+    if(node.type !== "Identifier" || !node.parent) return false
+
+    if(node.parent.type === "AssignmentExpression" && 
+       node.parent.left === node) {
+      return node.parent
+    }
+    if(node.parent.property === node &&
+       node.parent.parent.type === "AssignmentExpression") {
+      return node.parent.parent
+    }
+    return false
+  }
 
   var output = falafel(code, { loc: true, comment: true }, function(node) {
     var blockId
+      , assignmentStatement
+
+    if(node.type === "CallExpression") {
+      if(node.callee.type === "MemberExpression") {
+        node.callee.update(node.callee.source() + ".call")
+        if(node.arguments.length) {  
+          node.arguments[0].update(node.callee.object.originalSource + "," + node.arguments[0].source())
+        }
+      }
+    }
     if(node.type === "Identifier") {
-      if(node.parent && node.parent.type === "AssignmentExpression" && node.parent.left === node) {
-        if(node.operator === "=") {
-          node.parent.right.__hackedI = i
+      if(assignmentStatement = isAssignmentTarget(node)) {
+        if(assignmentStatement.operator === "=") {
+          assignmentStatement.right.__hackedI = i
         } else {
-          node.parent.__hackedI = i
+          assignmentStatement.__hackedI = i
         }
       } else if(node.parent && node.parent.type === "VariableDeclarator" && node.parent.id === node) {
         if(node.parent.init) {
@@ -17,9 +42,10 @@ var sourceFn = function() {
         }
       } else if(node.parent.type === "UpdateExpression") {
         node.parent.__hackedI = i
+      } else if(node.parent && node.parent.type === "MemberExpression" && node.parent.property === node) {
+        node.parent.__hackedI = i
       } else if(!node.parent || node.parent.key !== node && node.parent.type !== "FunctionExpression") {
-        if(node.parent)
-          console.log(node, node.parent.key)
+        node.originalSource = node.source()
         node.update("__(" + i + ", " + node.source() + ")")
       }
       i++
@@ -77,7 +103,7 @@ var sourceFn = function() {
   console.log(output.toString())
   esprima.parse(output.toString())
 
-  (new Function("__, __s, __e", output))(set, start, end)
+  ;(new Function("__, __s, __e", output.toString()))(set, start, end)
 
   if(typeof $ != "undefined") {
     $(function() {
