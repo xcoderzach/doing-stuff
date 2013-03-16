@@ -1,5 +1,5 @@
 var sourceFn = function() {
-  var code = "console.log('asdf');"
+  var code = "x = {console: console}; x.console.log('asdf');"
     , i = 0
 
   function isAssignmentTarget(node) {
@@ -17,6 +17,12 @@ var sourceFn = function() {
     return false
   }
 
+  var chunks = code.split('')
+
+  function originalSource(node) {
+    return chunks.slice(node.range[0], node.range[1]).join('')
+  }
+
   var output = falafel(code, { loc: true, comment: true }, function(node) {
     var blockId
       , assignmentStatement
@@ -25,7 +31,7 @@ var sourceFn = function() {
       if(node.callee.type === "MemberExpression") {
         node.callee.update(node.callee.source() + ".call")
         if(node.arguments.length) {  
-          node.arguments[0].update(node.callee.object.originalSource + "," + node.arguments[0].source())
+          node.arguments[0].update(originalSource(node.callee.object) + "," + node.arguments[0].source())
         }
       }
     }
@@ -45,7 +51,6 @@ var sourceFn = function() {
       } else if(node.parent && node.parent.type === "MemberExpression" && node.parent.property === node) {
         node.parent.__hackedI = i
       } else if(!node.parent || node.parent.key !== node && node.parent.type !== "FunctionExpression") {
-        node.originalSource = node.source()
         node.update("__(" + i + ", " + node.source() + ")")
       }
       i++
