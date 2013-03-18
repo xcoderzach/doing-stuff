@@ -1,5 +1,10 @@
-var transform = require("../lib/transform")
+var Transform = require("../lib/transform")
   , expect = require("expect.js")
+
+function transform(code) {
+  var t = new Transform(code)
+  return t.getCode()
+}
 
 describe("transform", function() {
 
@@ -25,6 +30,6 @@ describe("transform", function() {
     var code = "for(i = 0; i < 10; i++) { x }"
     var expected = "for(i = __(0, 0); __s(2),__(1, i) < 10; __e(__(4, i++))) { __(5, x) }"
     expect(transform(code)).to.be(expected)
-    }) 
+  }) 
    
 })
