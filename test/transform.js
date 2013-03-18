@@ -20,5 +20,11 @@ describe("transform", function() {
     var expected = "x = __(0, y)"
     expect(transform(code)).to.be(expected)
   })
+
+  it("it should transform a for loop", function() {
+    var code = "for(i = 0; i < 10; i++) { x }"
+    var expected = "for(i = __(0, 0); __s(2),__(1, i) < 10; __e(__(4, i++))) { __(5, x) }"
+    expect(transform(code)).to.be(expected)
+    }) 
    
 })
